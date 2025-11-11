@@ -11,8 +11,6 @@
 using namespace CryptoPP;
 
 Authenticator::Authenticator(Logger& logger) : logger_(logger) {
-    // Фиксированный пользователь больше не добавляется автоматически
-    // Все пользователи загружаются из файла
 }
 
 bool Authenticator::loadUsers(const std::string& filename) {
@@ -111,7 +109,7 @@ bool Authenticator::authenticateUser(int clientSocket, const std::string& login)
 
 std::string Authenticator::generateSalt() {
     AutoSeededRandomPool prng;
-    byte salt[8]; // 64 бита согласно ТЗ
+    byte salt[8]; 
     prng.GenerateBlock(salt, sizeof(salt));
     
     std::string saltHex;
@@ -129,7 +127,7 @@ std::string Authenticator::generateSalt() {
 }
 
 std::string Authenticator::calculateHash(const std::string& salt, const std::string& password) {
-    SHA1 sha1; // SHA-1 согласно ТЗ
+    SHA1 sha1; 
     std::string data = salt + password;
     std::string hash;
     
@@ -158,7 +156,7 @@ bool Authenticator::sendSalt(int clientSocket, const std::string& salt) {
 }
 
 bool Authenticator::receiveHash(int clientSocket, std::string& hash) {
-    char buffer[41] = {0}; // SHA-1 hash is 40 hex characters + null terminator
+    char buffer[41] = {0}; 
     ssize_t bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
     
     if (bytesReceived <= 0) {
