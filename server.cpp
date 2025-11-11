@@ -291,7 +291,6 @@ void Server::handleClient(int clientSocket, const std::string& clientIP) {
                     return;
                 }
                 
-                // Конвертируем float из little-endian в host byte order
                 uint32_t temp;
                 memcpy(&temp, &value, sizeof(float));
                 temp = le32toh(temp);
@@ -310,7 +309,6 @@ void Server::handleClient(int clientSocket, const std::string& clientIP) {
             debugMsg += "]";
             logger_.info(debugMsg);
             
-            // ВЫЧИСЛЯЕМ ПРОИЗВЕДЕНИЕ ДЛЯ ЭТОГО ВЕКТОРА С ПРОВЕРКОЙ ПЕРЕПОЛНЕНИЯ
             float product = calculateProductWithOverflowCheck(vector, logger_);
             
             if (std::isinf(product)) {
@@ -319,7 +317,6 @@ void Server::handleClient(int clientSocket, const std::string& clientIP) {
                 logger_.info("Vector " + std::to_string(i + 1) + " product: " + std::to_string(product));
             }
             
-            // ОТПРАВЛЯЕМ РЕЗУЛЬТАТ СРАЗУ ЖЕ
             logger_.debug("Sending result for vector " + std::to_string(i + 1) + ": " + std::to_string(product));
             
             // Конвертируем результат в little-endian
