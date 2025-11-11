@@ -3,8 +3,8 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 LIBS = -lcryptopp
 TARGET = server
 
-SOURCES = main.cpp server.cpp config.cpp logger.cpp authenticator.cpp processor.cpp network.cpp
-HEADERS = server.h config.h logger.h authenticator.h processor.h network.h error_handler.h
+SOURCES = main.cpp server.cpp config.cpp logger.cpp authenticator.cpp network.cpp
+HEADERS = server.h config.h logger.h authenticator.h network.h error_handler.h
 OBJECTS = $(SOURCES:.cpp=.o)
 
 $(TARGET): $(OBJECTS)

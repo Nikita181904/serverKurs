@@ -20,8 +20,6 @@ public:
     bool authenticateUser(int clientSocket, const std::string& login);
     bool userExists(const std::string& login) const;
     
-    void addFixedUser();
-    
 private:
     std::string generateSalt();
     std::string calculateHash(const std::string& salt, const std::string& password);

@@ -4,20 +4,23 @@
 #include "config.h"
 #include "logger.h"
 #include "authenticator.h"
-#include "processor.h"
 #include "network.h"
 #include <atomic>
 #include <memory>
 #include <csignal>
+#include <vector>
+#include <cmath>
+#include <limits>
+#include <chrono>
 
 class Server {
 private:
     ServerConfig config_;
     Logger logger_;
     Authenticator authenticator_;
-    VectorProcessor processor_;
     NetworkManager network_;
     std::atomic<bool> running_;
+    std::chrono::steady_clock::time_point lastActivity_;
     
 public:
     Server(const ServerConfig& config);
@@ -29,7 +32,8 @@ public:
     
 private:
     void handleClient(int clientSocket, const std::string& clientIP);
-    void sendEmptyResults(int clientSocket, const std::string& reason);  // Добавьте этот метод
+    void updateActivity();
+    bool shouldShutdownDueToInactivity();
 };
 
 class ServerInterface {

@@ -11,41 +11,57 @@
 using namespace CryptoPP;
 
 Authenticator::Authenticator(Logger& logger) : logger_(logger) {
-    addFixedUser();
-}
-
-void Authenticator::addFixedUser() {
-    users_["user"] = "P@ssW0rd";
-    logger_.info("Added fixed user: user/P@ssW0rd");
+    // Фиксированный пользователь больше не добавляется автоматически
+    // Все пользователи загружаются из файла
 }
 
 bool Authenticator::loadUsers(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        logger_.warning("Cannot open user database file: " + filename + ", using fixed user only");
-        return true; // Продолжаем работу с фиксированным пользователем
+        logger_.error("Cannot open user database file: " + filename);
+        return false; // Теперь возвращаем false, так как файл обязателен
     }
     
     std::string line;
     int userCount = 0;
     
     while (std::getline(file, line)) {
+        // Пропускаем пустые строки и комментарии
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        
         size_t pos = line.find(':');
         if (pos != std::string::npos) {
             std::string login = line.substr(0, pos);
             std::string password = line.substr(pos + 1);
             
+            // Убираем пробелы в начале и конце
+            login.erase(0, login.find_first_not_of(" \t"));
+            login.erase(login.find_last_not_of(" \t") + 1);
+            password.erase(0, password.find_first_not_of(" \t"));
+            password.erase(password.find_last_not_of(" \t") + 1);
+            
             if (!login.empty() && !password.empty()) {
                 users_[login] = password;
                 userCount++;
                 logger_.debug("Loaded user: " + login);
+            } else {
+                logger_.warning("Invalid user entry in database: " + line);
             }
+        } else {
+            logger_.warning("Malformed line in user database: " + line);
         }
     }
     
     file.close();
     
-    logger_.info("Loaded " + std::to_string(userCount) + " users from database + fixed user");
+    if (userCount == 0) {
+        logger_.error("No valid users found in database: " + filename);
+        return false;
+    }
+    
+    logger_.info("Loaded " + std::to_string(userCount) + " users from database: " + filename);
     return true;
 }
 
@@ -142,7 +158,7 @@ bool Authenticator::sendSalt(int clientSocket, const std::string& salt) {
 }
 
 bool Authenticator::receiveHash(int clientSocket, std::string& hash) {
-    char buffer[41] = {0};
+    char buffer[41] = {0}; // SHA-1 hash is 40 hex characters + null terminator
     ssize_t bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
     
     if (bytesReceived <= 0) {

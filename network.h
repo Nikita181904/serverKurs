@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
+#include <algorithm>
 #include "logger.h"
 #include "error_handler.h"
 
@@ -29,19 +30,19 @@ public:
     
     // Методы для работы с клиентом
     bool receiveLogin(int clientSocket, std::string& login);
-    bool receiveVectors(int clientSocket, std::vector<std::vector<float>>& vectors);
-    bool sendResults(int clientSocket, const std::vector<float>& results);
+    
+    // Публичные методы для доступа к базовым операциям
+    bool receiveData(int clientSocket, void* buffer, size_t size);
+    bool sendData(int clientSocket, const void* data, size_t size);
+    
+    // Метод для получения серверного сокета (для select)
+    int getServerSocket() const { return serverSocket_; }
     
 private:
     bool createSocket();
     bool bindSocket(uint16_t port);
     bool startListening();
     bool setSocketOptions();
-    
-    // Вспомогательные методы
-    bool receiveData(int clientSocket, void* buffer, size_t size);
-    bool sendData(int clientSocket, const void* data, size_t size);
-    bool receiveVector(int clientSocket, std::vector<float>& vector);
 };
 
 #endif // NETWORK_H

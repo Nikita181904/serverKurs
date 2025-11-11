@@ -8,7 +8,7 @@
 struct ServerConfig {
     std::string clientDbFile = "/etc/vcalc.conf";
     std::string logFile = "/var/log/vcalc.log";
-    uint16_t port = 33333; 
+    uint16_t port = 33333;  // Значение по умолчанию
     
     bool validate() const;
 };
@@ -25,6 +25,7 @@ public:
 private:
     void setClientDbFile(const std::string& filename);
     void setLogFile(const std::string& filename);
+    void setPort(const std::string& portStr);
 };
 
 #endif // CONFIG_H

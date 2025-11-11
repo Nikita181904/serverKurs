@@ -2,6 +2,17 @@
 #include <iostream>
 #include <algorithm>
 
+// Если endian.h не доступен, определяем функции самостоятельно
+#ifndef le32toh
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define le32toh(x) (x)
+#define htole32(x) (x)
+#else
+#define le32toh(x) __bswap_32(x)
+#define htole32(x) __bswap_32(x)
+#endif
+#endif
+
 NetworkManager::NetworkManager(Logger& logger) 
     : logger_(logger), serverSocket_(-1), initialized_(false) {}
 
@@ -105,7 +116,7 @@ int NetworkManager::acceptClient(std::string& clientIP) {
     
     // Устанавливаем таймаут на операции приема данных
     struct timeval timeout;
-    timeout.tv_sec = 5;  // 5 секунд таймаут
+    timeout.tv_sec = 10;
     timeout.tv_usec = 0;
     setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
     
@@ -140,137 +151,6 @@ bool NetworkManager::receiveLogin(int clientSocket, std::string& login) {
     
     login.assign(buffer, bytesReceived);
     logger_.debug("Received login: " + login);
-    return true;
-}
-
-bool NetworkManager::receiveVectors(int clientSocket, std::vector<std::vector<float>>& vectors) {
-    uint32_t numVectors;
-    
-    logger_.debug("Waiting for number of vectors...");
-    if (!receiveData(clientSocket, &numVectors, sizeof(numVectors))) {
-        logger_.error("Failed to receive number of vectors");
-        return false;
-    }
-    
-    logger_.debug("Number of vectors: " + std::to_string(numVectors));
-    
-    // ЗАЩИТА ОТ НЕКОРРЕКТНЫХ ДАННЫХ
-    if (numVectors == 0) {
-        logger_.error("Zero vectors received");
-        return false;
-    }
-    
-    if (numVectors > 10) {
-        logger_.warning("Too many vectors: " + std::to_string(numVectors) + ", limiting to 2");
-        numVectors = 2;  // Ограничиваем для теста
-    }
-    
-    logger_.debug("Will receive " + std::to_string(numVectors) + " vectors");
-    vectors.clear();
-    vectors.reserve(numVectors);
-    
-    // Получаем векторы с защитой от зависания
-    for (uint32_t i = 0; i < numVectors; ++i) {
-        logger_.debug("Receiving vector " + std::to_string(i + 1));
-        std::vector<float> vector;
-        
-        if (!receiveVector(clientSocket, vector)) {
-            logger_.error("Failed to receive vector " + std::to_string(i + 1));
-            
-            // Если не получили вектор, но уже есть данные - продолжаем
-            if (!vectors.empty()) {
-                logger_.warning("Continuing with " + std::to_string(vectors.size()) + " received vectors");
-                break;
-            }
-            return false;
-        }
-        
-        vectors.push_back(std::move(vector));
-        logger_.debug("Successfully received vector " + std::to_string(i + 1));
-        
-        if (vectors.size() >= 2) {
-            logger_.debug("Received maximum test vectors (2), stopping");
-            break;
-        }
-    }
-    
-    logger_.info("Successfully received " + std::to_string(vectors.size()) + " vectors");
-    return true;
-}
-
-bool NetworkManager::sendResults(int clientSocket, const std::vector<float>& results) {
-    logger_.debug("=== START sendResults ===");
-    logger_.debug("Preparing to send " + std::to_string(results.size()) + " results");
-    
-    try {
-        // Всегда отправляем количество результатов
-        uint32_t numResults = results.size();
-        logger_.debug("Sending numResults: " + std::to_string(numResults));
-        
-        if (!sendData(clientSocket, &numResults, sizeof(numResults))) {
-            logger_.error("Failed to send number of results");
-            return false;
-        }
-        
-        logger_.debug("Successfully sent number of results");
-        
-        // Отправляем каждый результат
-        for (size_t i = 0; i < results.size(); ++i) {
-            logger_.debug("Sending result " + std::to_string(i) + ": " + std::to_string(results[i]));
-            
-            if (!sendData(clientSocket, &results[i], sizeof(results[i]))) {
-                logger_.error("Failed to send result " + std::to_string(i));
-                return false;
-            }
-            
-            logger_.debug("Successfully sent result " + std::to_string(i));
-        }
-        
-        logger_.debug("=== COMPLETED sendResults - sent " + std::to_string(results.size()) + " results ===");
-        return true;
-        
-    } catch (const std::exception& e) {
-        logger_.error("Exception in sendResults: " + std::string(e.what()));
-        return false;
-    }
-}
-
-bool NetworkManager::receiveVector(int clientSocket, std::vector<float>& vector) {
-    uint32_t vectorSize;
-    
-    // Получаем размер вектора
-    if (!receiveData(clientSocket, &vectorSize, sizeof(vectorSize))) {
-        logger_.error("Failed to receive vector size");
-        return false;
-    }
-    
-    logger_.debug("Vector size: " + std::to_string(vectorSize));
-    
-    // Защита от некорректных данных
-    if (vectorSize == 0) {
-        logger_.error("Empty vector received");
-        return false;
-    }
-    
-    if (vectorSize > 1000) {
-        logger_.error("Vector too large: " + std::to_string(vectorSize));
-        return false;
-    }
-    
-    // Получаем данные вектора
-    vector.resize(vectorSize);
-    if (!receiveData(clientSocket, vector.data(), vectorSize * sizeof(float))) {
-        logger_.error("Failed to receive vector data");
-        return false;
-    }
-    
-    std::string debugMsg = "Vector data (first 3): ";
-    size_t count = std::min(static_cast<size_t>(vectorSize), size_t(3));
-    for (size_t i = 0; i < count; ++i) {
-        debugMsg += std::to_string(vector[i]) + " ";
-    }
-    logger_.debug(debugMsg);
-    
     return true;
 }
 
