@@ -2,7 +2,6 @@
 #include <iostream>
 #include <algorithm>
 
-// Если endian.h не доступен, определяем функции самостоятельно
 #ifndef le32toh
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define le32toh(x) (x)
