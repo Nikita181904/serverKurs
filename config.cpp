@@ -13,7 +13,6 @@ bool ServerConfig::validate() const {
         throw ConfigException("Log file path cannot be empty");
     }
     
-    // Исправленная проверка порта для uint16_t
     if (port < 1024) {
         throw ConfigException("Port must be in range 1024-65535");
     }
